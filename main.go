@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"time"
 
+	"gonum.org/v1/plot/vg/draw"
+
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -27,16 +29,37 @@ func main() {
 	p.X.Label.Text = "X"
 	p.Y.Label.Text = "Y"
 
-	length := 300
+	length := 100
 
 	// Make a line plotter and set its style.
-	historyPts := makePlot(readPoints("продажи.csv")) //randomPoints(length, 50, 0, 0.5, 15, 30)
+	history := readPoints("продажи.csv")
+	historyPts := makePlot(history) //randomPoints(length, 50, 0, 0.5, 15, 30)
 	l, err := plotter.NewLine(historyPts)
 	if err != nil {
 		panic(err)
 	}
 	l.LineStyle.Width = vg.Points(1)
 	l.LineStyle.Color = color.RGBA{B: 255, A: 255}
+
+	// Make a line plotter and set its style.
+	smoothHistory := movingavg(history, 2)
+	upperLimit := confidenceUpperLimit(smoothHistory, 4)
+	upperLimitPts := makePlot(upperLimit)
+	upperLimitLine, upperScatter, err := plotter.NewLinePoints(upperLimitPts)
+	if err != nil {
+		panic(err)
+	}
+	upperLimitLine.LineStyle.Width = vg.Points(1)
+	upperLimitLine.LineStyle.Color = color.RGBA{R: 255, B: 255, A: 255}
+	upperScatter.Shape = draw.PyramidGlyph{}
+
+	smoothPts := makePlot(smoothHistory)
+	smoothLine, err := plotter.NewLine(smoothPts)
+	if err != nil {
+		panic(err)
+	}
+	smoothLine.LineStyle.Width = vg.Points(1)
+	smoothLine.LineStyle.Color = color.RGBA{R: 255, A: 255}
 
 	forecastDist := 1
 
@@ -55,14 +78,14 @@ func main() {
 	forecastLine.LineStyle.Color = color.RGBA{G: 255, A: 255}
 
 	//Trend line
-	lineA, lineB := linearRegression(historyPts)
+	trend := linearRegression(historyPts)
 	trendPts := make(plotter.XYs, 2)
 
 	trendPts[0].X = 0
-	trendPts[0].Y = lineB
+	trendPts[0].Y = trend.Y(0)
 
 	trendPts[1].X = float64(len(historyPts))
-	trendPts[1].Y = lineA*trendPts[1].X + lineB
+	trendPts[1].Y = trend.Y(int(trendPts[1].X))
 
 	fmt.Println(trendPts)
 
@@ -71,13 +94,13 @@ func main() {
 		panic(err)
 	}
 
-	p.Add(l, forecastLine, trendLine)
+	p.Add(l, forecastLine, trendLine, smoothLine, upperLimitLine, upperScatter)
 
 	// Set the axis ranges.
 	p.X.Min = 0
 	p.X.Max = float64(length + forecastDist)
 	p.Y.Min = 0
-	p.Y.Max = 400
+	p.Y.Max = 1000
 
 	// Save the plot to a PNG file.
 	if err := p.Save(10*vg.Inch, 6*vg.Inch, "points.png"); err != nil {

@@ -54,6 +54,29 @@
   revision = "4e30a6eb7d9a7fbd8f97e1d47806f810d86cfc6e"
 
 [[projects]]
+  digest = "1:137714ae7838cec8b48918205cb3cd96b17afebaa715e35a8213e6e0cc739d56"
+  name = "golang.org/x/text"
+  packages = [
+    "feature/plural",
+    "internal",
+    "internal/catmsg",
+    "internal/format",
+    "internal/gen",
+    "internal/language",
+    "internal/language/compact",
+    "internal/number",
+    "internal/stringset",
+    "internal/tag",
+    "language",
+    "message",
+    "message/catalog",
+    "unicode/cldr",
+  ]
+  pruneopts = "UT"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
+
+[[projects]]
   branch = "master"
   digest = "1:4385f1dee06d0a39ef24c8fccc7e87c923b2dd1e8f07cf269ed7d7a57c16693c"
   name = "gonum.org/v1/gonum"
@@ -101,9 +124,12 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "golang.org/x/text/language",
+    "golang.org/x/text/message",
     "gonum.org/v1/plot",
     "gonum.org/v1/plot/plotter",
     "gonum.org/v1/plot/vg",
+    "gonum.org/v1/plot/vg/draw",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
