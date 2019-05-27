@@ -17,9 +17,9 @@ func toFloat64(in []string) []float64 {
 	for i := range in {
 		num, err := strconv.ParseFloat(in[i], 64)
 		if err != nil {
-			log.Fatalln(err)
+			// log.Fatalln(err)
+			num = 0
 		}
-
 		out[i] = num
 	}
 
@@ -38,12 +38,12 @@ func toString(in []float64) []string {
 	return out
 }
 
-func readPoints(filename string) []float64 {
+func readPoints(filename string, line int) []float64 {
 	fileIn, _ := os.Open(filename)
 	defer fileIn.Close()
 	reader := csv.NewReader(fileIn)
 
-	for {
+	for i := 0; ;i++ {
 		record, err := reader.Read()
 		if err == io.EOF {
 			break
@@ -51,7 +51,10 @@ func readPoints(filename string) []float64 {
 		if err != nil {
 			log.Fatal(err)
 		}
-		return toFloat64(record)
+
+		if i == line {
+			return toFloat64(record)
+		}
 	}
 
 	return nil

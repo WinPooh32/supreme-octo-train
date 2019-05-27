@@ -39,7 +39,7 @@ func calcAvgError(history, forecast plotter.XYs) float64 {
 	return sum / float64(len(history)-forecastDist)
 }
 
-func buildForecastModelHolt(history plotter.XYs, forecastDist int, l1, l2 float64) plotter.XYs {
+func buildForecastModelHolt(history plotter.XYs, forecastDist int, l1, l2 float64) (plotter.XYs, float64, float64) {
 	size := len(history)
 	modelPts := make(plotter.XYs, size)
 
@@ -57,7 +57,7 @@ func buildForecastModelHolt(history plotter.XYs, forecastDist int, l1, l2 float6
 		modelPts[i].Y = next
 	}
 
-	return modelPts
+	return modelPts, a, b
 }
 
 //Поиск оптимальных параметров
@@ -72,7 +72,7 @@ func holtFindParameters(history plotter.XYs, forecastDist int) (minL1, minL2 flo
 	// и лишь потом взять константы, дающие минимальную ошибку.
 	for l1 := 0.0; l1 < 1.0; l1 += step {
 		for l2 := 0.0; l2 < 1.0; l2 += step {
-			forecast := buildForecastModelHolt(history, forecastDist, l1, l2)
+			forecast, _, _ := buildForecastModelHolt(history, forecastDist, l1, l2)
 			err := calcAvgError(history, forecast)
 
 			if err < minErr {

@@ -44,6 +44,37 @@ func linearRegression(history plotter.XYs) line {
 	return l
 }
 
+func linearRegressionArray(history []float64) line {
+	var (
+		sumXSquare, sumX, sumY, sumXY float64
+	)
+
+	for x := 0; x < len(history); x++  {
+		sumXSquare += float64(x * x)
+		sumX += float64(x)
+		sumY += history[x]
+		sumXY += float64(x) * history[x]
+	}
+
+	size := float64(len(history))
+
+	// Определитель матрицы системы уравнений
+	det := sumXSquare*size - sumX*sumX
+
+	detA := sumXY*size - sumY*sumX
+	detB := sumXSquare*sumY - sumX*sumXY
+
+	if detA == 0 || det == 0 || detB == 0 {
+		return line{}
+	}
+
+	var l line
+	l.k = detA / det
+	l.b = detB / det
+
+	return l
+}
+
 // Квадратичное отклонение
 func dispersion(data []float64, avg float64) (out []float64) {
 	out = make([]float64, len(data))
