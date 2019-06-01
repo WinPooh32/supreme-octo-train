@@ -13,3 +13,5 @@
 *.~lock*
 
 /debug
+dist
+node_modules/

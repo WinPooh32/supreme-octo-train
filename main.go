@@ -1,9 +1,6 @@
 package main
 
 import (
-	"os"
-	"io"
-	"encoding/csv"
 	"log"
 	"fmt"
 	"image/color"
@@ -18,34 +15,32 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
-const(
-	l1 = 0.30
-	l2 = 0.45
-)
-
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	serveui("./frontend/dist")
 
-	fileIn, _ := os.Open("продажи.csv")
-	defer fileIn.Close()
-	reader := csv.NewReader(fileIn)
+	// rand.Seed(time.Now().UTC().UnixNano())
 
-	for i := 0; ;i++ {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Println(err)
-		}
+	// fileIn, _ := os.Open("продажи.csv")
+	// defer fileIn.Close()
+	// reader := csv.NewReader(fileIn)
 
-		row := reverse(toFloat64(record))
-		render(row, i)
-	}
+	// for i := 0; ;i++ {
+	// 	record, err := reader.Read()
+	// 	if err == io.EOF {
+	// 		break
+	// 	}
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+
+	// 	name := record[0]
+	// 	row := reverse(toFloat64(record[1:]))
+	// 	render(row, name)
+	// }
 
 }
 
-func render(history []float64, item int){
+func render(history []float64, item string){
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
@@ -151,7 +146,7 @@ func render(history []float64, item int){
 	p.Y.Max = findMax(history) + 100
 
 	// Save the plot to a PNG file.
-	if err := p.Save(10*vg.Inch * 4, 6*vg.Inch, fmt.Sprintf("item-%d.png", item)); err != nil {
+	if err := p.Save(10*vg.Inch * 4, 6*vg.Inch, fmt.Sprintf("item-%s.png", item)); err != nil {
 		panic(err)
 	}
 
@@ -238,7 +233,11 @@ func calcYearCoefficient(dataL, dataR []float64) []float64{
 	out := make([]float64, len(sumL))
 
 	for i:= 0; i < len(sumR); i++{
-		out[i] = sumL[i] / sumR[i]
+		if (sumL[i] != 0){
+			out[i] = sumL[i] / sumR[i]
+		}else{
+			out[i] = 0
+		}
 	} 
 
 	return out
@@ -401,8 +400,6 @@ func randomPoints(n, xOffset int, noiseScale, trending, periodStep, scale float6
 // }
 
 func buildForecast(upperLimit []float64) []float64 {
-	const weeksperyear = 52
-	
 	years := len(upperLimit)/weeksperyear
 	pts := make([]float64, weeksperyear)
 

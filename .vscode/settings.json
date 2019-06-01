@@ -3,6 +3,14 @@
         "**/Gopkg.*": true,
         "**/debug": true,
         "**/*.exe": true,
-        "**/.*": true
+        "**/.*": true,
+		"**/node_modules/": true,
+		"**/vendor/": true,
     }
+	
+	"files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true
+	}
 }

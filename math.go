@@ -123,7 +123,12 @@ func movingavg(in []float64, window int) (out []float64) {
 			sum += in[i-j]
 		}
 
-		out[i] = sum / float64(window)
+		if sum > 0 {
+			out[i] = sum / float64(window)
+		}else{
+			out[i] = 0
+		}
+		
 	}
 
 	return
