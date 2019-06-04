@@ -38,7 +38,14 @@ function makePlotData(item: any): Array<Indexable> {
 var instance: ViewItemInfo
 
 export interface ViewItemInfoProps { item: any; }
-export interface ViewItemInfoState { input?: Indexable, sum: number, sumSold: number, isNextItem: boolean, prevItem: any }
+export interface ViewItemInfoState {
+    input?: Indexable,
+    sum: number,
+    sumSold: number,
+    sumError: number,
+    isNextItem: boolean,
+    prevItem: any,
+}
 
 export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInfoState> {
     startIndex: number
@@ -86,10 +93,21 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
             let b = parseInt(state.input.calcBegin as string)
             let e = parseInt(state.input.calcEnd as string)
 
+            let sum = instance.calcSum(b, e)
+            let sumSold = instance.calcSoldSum(b, e)
+            let sumError: number
+
+            if (sumSold != 0) {
+                sumError = 100 * (sum - sumSold) / sumSold
+            } else {
+                sumError = Infinity
+            }
+
             let newState = {
                 input: state.input,
-                sum: instance.calcSum(b, e),
-                sumSold: instance.calcSoldSum(b, e),
+                sum: sum,
+                sumSold: sumSold,
+                sumError: sumError
             }
 
             newState.input[data.name] = data.value
@@ -111,10 +129,16 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
         let item = this.props.item
         this.data = makePlotData(item)
 
+
+        let sum = this.calcSum(1, 52)
+        let sumSold = this.calcSoldSum(1, 52)
+        let sumError = 100 * (sum - sumSold) / sumSold
+
         this.state = {
             input: { calcBegin: '1', calcEnd: '52' } as Indexable,
-            sum: this.calcSum(1, 52),
-            sumSold: this.calcSoldSum(1, 52),
+            sum: sum,
+            sumSold: sumSold,
+            sumError: sumError,
             prevItem: this.props.item,
         } as ViewItemInfoState
 
@@ -128,10 +152,15 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
             this.data = makePlotData(item)
 
             this.setState((state) => {
+                let sum = this.calcSum(1, 52)
+                let sumSold = this.calcSoldSum(1, 52)
+                let sumError = 100 * (sum - sumSold) / sumSold
+
                 return {
                     input: { calcBegin: '1', calcEnd: '52' } as Indexable,
-                    sum: this.calcSum(1, 52),
-                    sumSold: this.calcSoldSum(1, 52),
+                    sum: sum,
+                    sumSold: sumSold,
+                    sumError: sumError,
                     isNextItem: this.props.item
                 } as ViewItemInfoState
             })
@@ -192,6 +221,12 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
                             <Statistic.Label>Продано:</Statistic.Label>
                             <Statistic.Value>{Math.ceil(this.state.sumSold)}</Statistic.Value>
                         </Statistic>
+
+                        <Statistic size='mini'>
+                            <Statistic.Label>Ошибка:</Statistic.Label>
+                            <Statistic.Value>{Math.ceil(this.state.sumError)}%</Statistic.Value>
+                        </Statistic>
+
                         <Divider />
 
                     </Grid.Column>

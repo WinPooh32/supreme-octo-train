@@ -1,31 +1,32 @@
 package main
 
 import (
-	"path"
-	"mime"
-	"os"
 	"encoding/csv"
 	"io"
 	"log"
+	"mime"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"strings"
 )
 
-func prepareForecast(data []float64) (forecast, upperLimit, filtered []float64){
+func prepareForecast(data []float64) (forecast, upperLimit, filtered []float64) {
 	smoothHistory := movingavg(data, 2)
 	upperLimit = confidenceUpperLimit(smoothHistory, 4)
-	
+
 	filtered = approximateByRegression(upperLimit)
 	coefs := calcYearCoefficient(data, filtered)
 	multCoefficient(filtered, coefs)
 
-	forecast = buildForecast(approximateByRegression(upperLimit[0:len(filtered)-weeksperyear]))
+	forecast = buildForecast(approximateByRegression(upperLimit[0 : len(filtered)-weeksperyear]))
 
 	return
 }
 
-func app(r *gin.Engine){
+func app(r *gin.Engine) {
 	html := `<!DOCTYPE html>
 <html>
 
@@ -48,7 +49,7 @@ func app(r *gin.Engine){
 </html>`
 
 	r.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, staticPath){
+		if strings.HasPrefix(c.Request.URL.Path, staticPath) {
 			c.Status(404)
 			return
 		}
@@ -60,7 +61,7 @@ func app(r *gin.Engine){
 	})
 }
 
-func api(r *gin.Engine){
+func api(r *gin.Engine) {
 	r.GET("/forecast", func(c *gin.Context) {
 
 		response := make([]gin.H, 0, 10)
@@ -69,8 +70,8 @@ func api(r *gin.Engine){
 		fileIn, _ := os.Open("продажи.csv")
 		defer fileIn.Close()
 		reader := csv.NewReader(fileIn)
-	
-		for i := 0; ;i++ {
+
+		for i := 0; ; i++ {
 			record, err := reader.Read()
 			if err == io.EOF {
 				break
@@ -83,14 +84,14 @@ func api(r *gin.Engine){
 			row := reverse(toFloat64(record[1:]))
 
 			forecast, upperLimit, filtered := prepareForecast(row)
-			
+
 			response = append(response, gin.H{
-				"id": i,
-				"name": name,
-				"data": row,
-				"forecast": forecast,
+				"id":         i,
+				"name":       name,
+				"data":       row,
+				"forecast":   forecast,
 				"upperLimit": upperLimit,
-				"filtered": filtered,
+				"filtered":   filtered,
 			})
 		}
 
@@ -101,10 +102,10 @@ func api(r *gin.Engine){
 func detectMIME() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		var contentType string 
+		var contentType string
 		ext := path.Ext(c.Request.URL.EscapedPath())
-		
-		switch ext { 
+
+		switch ext {
 		case ".js":
 			contentType = "application/javascript"
 		case ".woff":
@@ -114,18 +115,16 @@ func detectMIME() gin.HandlerFunc {
 		default:
 			contentType = mime.TypeByExtension(ext)
 		}
-		
+
 		if len(contentType) > 0 {
 			c.Header("Content-Type", contentType)
 		}
-
-		log.Println("contentType", contentType, c.Writer.Header().Get("Content-Type"))
 
 		c.Next()
 	}
 }
 
-func serveui(dir string){
+func serveui(dir string) {
 	r := gin.Default()
 
 	config := cors.DefaultConfig()
@@ -135,7 +134,7 @@ func serveui(dir string){
 	r.Use(detectMIME())
 
 	app(r)
-	api(r)	
+	api(r)
 
 	r.StaticFS(staticPath, gin.Dir(dir, true))
 	// r.Static(staticPath, dir)

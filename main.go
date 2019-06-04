@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 	"math/rand"
-
-	"gonum.org/v1/plot/vg/draw"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -14,157 +11,157 @@ import (
 )
 
 func main() {
-	// serveui("./frontend/dist")
+	serveui("./frontend/dist")
 
-	lacks := [...]string{
-		" +  К 22.05.18 -  П 31.05.18 +  К 11.07.18 -  П 03.09.18 +",
-		" +  13.07.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 19.07.18 +",
-		" + ",
-		" +  13.07.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 19.07.18 +",
-		" +  22.05.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 11.07.18 +  К 08.10.18 -  П 05.12.18 +",
-		" +  К 30.07.18 -",
-		" +  01.01.18 пер(ХИМИЯ переделка) -  П 20.02.18 +  К 16.05.18 -  П 15.06.18 +  К 14.08.18 -  П 07.09.18 +",
-		" +  30.03.18 пер(ХИМИЯ переделка) -",
-		" -  П 29.10.18 + ",
-		" Новый товар ",
-	}
-
-	for _, v := range lacks {
-		fmt.Printf("'%s': %v\n", v, parseLackRange(v))
-	}
-}
-
-func render(history []float64, item string) {
-	p, err := plot.New()
-	if err != nil {
-		panic(err)
-	}
-
-	// Draw a grid behind the data
-	p.Add(plotter.NewGrid())
-
-	p.Title.Text = "Forecast"
-	p.X.Label.Text = "X"
-	p.Y.Label.Text = "Y"
-
-	length := 52 * 4
-
-	// Make a line plotter and set its style.
-	historyPts := makePlot(history) //randomPoints(length, 50, 0, 0.5, 15, 30)
-	l, err := plotter.NewLine(historyPts)
-	if err != nil {
-		panic(err)
-	}
-	l.LineStyle.Width = vg.Points(1)
-	l.LineStyle.Color = color.RGBA{B: 255, A: 255}
-
-	// Make a line plotter and set its style.
-	smoothHistory := movingavg(history, 2)
-	upperLimit := confidenceUpperLimit(smoothHistory, 4)
-
-	approx := approximateByRegression(upperLimit)
-	coefs := calcYearCoefficient(history, approx)
-	multCoefficient(approx, coefs)
-
-	coefs2 := calcYearCoefficient(history, approx)
-	fmt.Println(coefs2)
-
-	upperLimitPts := makePlot(approx)
-	upperLimitLine, upperScatter, err := plotter.NewLinePoints(upperLimitPts)
-	if err != nil {
-		panic(err)
-	}
-	upperLimitLine.LineStyle.Width = vg.Points(1)
-	upperLimitLine.LineStyle.Color = color.RGBA{R: 255, B: 255, A: 255}
-	upperScatter.Shape = draw.PyramidGlyph{}
-
-	//smoothPts := makePlot(smoothHistory)
-	smoothPts := makePlot(upperLimit)
-	smoothLine, err := plotter.NewLine(smoothPts)
-	if err != nil {
-		panic(err)
-	}
-	smoothLine.LineStyle.Width = vg.Points(1)
-	smoothLine.LineStyle.Color = color.RGBA{R: 255, A: 255}
-
-	forecastDist := 1
-
-	// Make a line plotter and set its style.
-	// thenTime := time.Now()
-	// l1, l2 := holtFindParameters(historyPts, forecastDist)
-	// holtModel, _, _ := buildForecastModelHolt(historyPts, forecastDist, l1, l2)
-	// nowTime := time.Now()
-
-	// forecastLine, err := plotter.NewLine(holtModel)
-	// if err != nil {
-	// 	panic(err)
+	// lacks := [...]string{
+	// 	" +  К 22.05.18 -  П 31.05.18 +  К 11.07.18 -  П 03.09.18 +",
+	// 	" +  13.07.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 19.07.18 +",
+	// 	" + ",
+	// 	" +  13.07.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 19.07.18 +",
+	// 	" +  22.05.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 11.07.18 +  К 08.10.18 -  П 05.12.18 +",
+	// 	" +  К 30.07.18 -",
+	// 	" +  01.01.18 пер(ХИМИЯ переделка) -  П 20.02.18 +  К 16.05.18 -  П 15.06.18 +  К 14.08.18 -  П 07.09.18 +",
+	// 	" +  30.03.18 пер(ХИМИЯ переделка) -",
+	// 	" -  П 29.10.18 + ",
+	// 	" Новый товар ",
 	// }
-	// forecastLine.LineStyle.Width = vg.Points(1)
-	// forecastLine.LineStyle.Dashes = []vg.Length{vg.Points(2), vg.Points(2)}
-	// forecastLine.LineStyle.Color = color.RGBA{G: 255, A: 255}
 
-	//Trend line
-	trend := linearRegression(historyPts)
-	trendPts := make(plotter.XYs, 2)
-
-	trendPts[0].X = 0
-	trendPts[0].Y = trend.Y(0)
-
-	trendPts[1].X = float64(len(historyPts))
-	trendPts[1].Y = trend.Y(int(trendPts[1].X))
-
-	fmt.Println(trendPts)
-
-	trendLine, err := plotter.NewLine(trendPts)
-	if err != nil {
-		panic(err)
-	}
-
-	nextYearLimit := buildForecast(approximateByRegression(upperLimit[0 : len(approx)-52])) //buildForecast(approx[0:len(approx)-52])
-	nextPlot := makePlot(nextYearLimit)
-	shiftPlotByX(nextPlot, 52*3)
-	nextYearLimitLine, err := plotter.NewLine(nextPlot)
-	if err != nil {
-		panic(err)
-	}
-	nextYearLimitLine.LineStyle.Color = color.RGBA{R: 255, G: 153, A: 255}
-
-	p.Add(l, trendLine, smoothLine, upperLimitLine, upperScatter, nextYearLimitLine) //forecastLine
-
-	// Set the axis ranges.
-	p.X.Min = 0
-	p.X.Max = float64(length + forecastDist)
-	p.Y.Min = 0
-	p.Y.Max = findMax(history) + 100
-
-	// Save the plot to a PNG file.
-	if err := p.Save(10*vg.Inch*4, 6*vg.Inch, fmt.Sprintf("item-%s.png", item)); err != nil {
-		panic(err)
-	}
-
-	// //--------------------------------------
-	// //Делаем историю кратную 52 неделям
-	// const layout = "02.01.2006" // dd.mm.yyyy
-
-	// beginHistory := "05.03.2015"
-	// endHistory := "05.09.2019"
-
-	// tBegin, _ := time.Parse(layout, beginHistory)
-	// tEnd, _ := time.Parse(layout, endHistory)
-
-	// years := (int(tEnd.Sub(tBegin).Hours())/24)/365
-	// fmt.Println(years)
-
-	// //--
-	// curWeek := mapWeek("25.05.2019", layout) //dayToWeek(time.Now().YearDay()) // текущая неделя в году
-	// lastWeeks := (52 - curWeek) // кол-во недель до конца года
-
-	// currentHistory := history[curWeek : len(history) - lastWeeks]//История с неполным текущим годом
-
-	// simCargo(2000, currentHistory)
-
-	fmt.Println("Успех!", item)
+	// for _, v := range lacks {
+	// 	fmt.Printf("'%s': %v\n", v, parseLackRange(v))
+	// }
 }
+
+// func render(history []float64, item string) {
+// 	p, err := plot.New()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	// Draw a grid behind the data
+// 	p.Add(plotter.NewGrid())
+
+// 	p.Title.Text = "Forecast"
+// 	p.X.Label.Text = "X"
+// 	p.Y.Label.Text = "Y"
+
+// 	length := 52 * 4
+
+// 	// Make a line plotter and set its style.
+// 	historyPts := makePlot(history) //randomPoints(length, 50, 0, 0.5, 15, 30)
+// 	l, err := plotter.NewLine(historyPts)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	l.LineStyle.Width = vg.Points(1)
+// 	l.LineStyle.Color = color.RGBA{B: 255, A: 255}
+
+// 	// Make a line plotter and set its style.
+// 	smoothHistory := movingavg(history, 2)
+// 	upperLimit := confidenceUpperLimit(smoothHistory, 4)
+
+// 	approx := approximateByRegression(upperLimit)
+// 	coefs := calcYearCoefficient(history, approx)
+// 	multCoefficient(approx, coefs)
+
+// 	coefs2 := calcYearCoefficient(history, approx)
+// 	fmt.Println(coefs2)
+
+// 	upperLimitPts := makePlot(approx)
+// 	upperLimitLine, upperScatter, err := plotter.NewLinePoints(upperLimitPts)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	upperLimitLine.LineStyle.Width = vg.Points(1)
+// 	upperLimitLine.LineStyle.Color = color.RGBA{R: 255, B: 255, A: 255}
+// 	upperScatter.Shape = draw.PyramidGlyph{}
+
+// 	//smoothPts := makePlot(smoothHistory)
+// 	smoothPts := makePlot(upperLimit)
+// 	smoothLine, err := plotter.NewLine(smoothPts)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	smoothLine.LineStyle.Width = vg.Points(1)
+// 	smoothLine.LineStyle.Color = color.RGBA{R: 255, A: 255}
+
+// 	forecastDist := 1
+
+// 	// Make a line plotter and set its style.
+// 	// thenTime := time.Now()
+// 	// l1, l2 := holtFindParameters(historyPts, forecastDist)
+// 	// holtModel, _, _ := buildForecastModelHolt(historyPts, forecastDist, l1, l2)
+// 	// nowTime := time.Now()
+
+// 	// forecastLine, err := plotter.NewLine(holtModel)
+// 	// if err != nil {
+// 	// 	panic(err)
+// 	// }
+// 	// forecastLine.LineStyle.Width = vg.Points(1)
+// 	// forecastLine.LineStyle.Dashes = []vg.Length{vg.Points(2), vg.Points(2)}
+// 	// forecastLine.LineStyle.Color = color.RGBA{G: 255, A: 255}
+
+// 	//Trend line
+// 	trend := linearRegression(historyPts)
+// 	trendPts := make(plotter.XYs, 2)
+
+// 	trendPts[0].X = 0
+// 	trendPts[0].Y = trend.Y(0)
+
+// 	trendPts[1].X = float64(len(historyPts))
+// 	trendPts[1].Y = trend.Y(int(trendPts[1].X))
+
+// 	fmt.Println(trendPts)
+
+// 	trendLine, err := plotter.NewLine(trendPts)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	nextYearLimit := buildForecast(approximateByRegression(upperLimit[0 : len(approx)-52])) //buildForecast(approx[0:len(approx)-52])
+// 	nextPlot := makePlot(nextYearLimit)
+// 	shiftPlotByX(nextPlot, 52*3)
+// 	nextYearLimitLine, err := plotter.NewLine(nextPlot)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	nextYearLimitLine.LineStyle.Color = color.RGBA{R: 255, G: 153, A: 255}
+
+// 	p.Add(l, trendLine, smoothLine, upperLimitLine, upperScatter, nextYearLimitLine) //forecastLine
+
+// 	// Set the axis ranges.
+// 	p.X.Min = 0
+// 	p.X.Max = float64(length + forecastDist)
+// 	p.Y.Min = 0
+// 	p.Y.Max = findMax(history) + 100
+
+// 	// Save the plot to a PNG file.
+// 	if err := p.Save(10*vg.Inch*4, 6*vg.Inch, fmt.Sprintf("item-%s.png", item)); err != nil {
+// 		panic(err)
+// 	}
+
+// 	// //--------------------------------------
+// 	// //Делаем историю кратную 52 неделям
+// 	// const layout = "02.01.2006" // dd.mm.yyyy
+
+// 	// beginHistory := "05.03.2015"
+// 	// endHistory := "05.09.2019"
+
+// 	// tBegin, _ := time.Parse(layout, beginHistory)
+// 	// tEnd, _ := time.Parse(layout, endHistory)
+
+// 	// years := (int(tEnd.Sub(tBegin).Hours())/24)/365
+// 	// fmt.Println(years)
+
+// 	// //--
+// 	// curWeek := mapWeek("25.05.2019", layout) //dayToWeek(time.Now().YearDay()) // текущая неделя в году
+// 	// lastWeeks := (52 - curWeek) // кол-во недель до конца года
+
+// 	// currentHistory := history[curWeek : len(history) - lastWeeks]//История с неполным текущим годом
+
+// 	// simCargo(2000, currentHistory)
+
+// 	fmt.Println("Успех!", item)
+// }
 
 func findMax(data []float64) float64 {
 	max := 0.0
