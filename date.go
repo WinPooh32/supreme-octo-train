@@ -13,7 +13,7 @@ const (
 )
 
 func dayToWeek(day int) (week int) {
-	week = int(math.Ceil(float64(day) / 7.0))
+	week = int(math.Floor(float64(day) / 7.0))
 	return
 }
 
