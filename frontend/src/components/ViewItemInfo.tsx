@@ -1,6 +1,6 @@
 import * as React from "react";
 import { LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, AreaChart, Brush, ReferenceLine } from "recharts";
-import { Form, InputOnChangeData, Grid, Statistic, Divider, List } from "semantic-ui-react";
+import { Form, InputOnChangeData, Grid, Statistic, Divider, List, Icon } from "semantic-ui-react";
 import { Link } from "react-router-dom";
 
 
@@ -12,6 +12,7 @@ function makePlotData(item: any): Array<Indexable> {
     let data = item.data
     let forecast = item.forecast
     let filtered = item.filtered
+    let restored = item.restored
 
     let pts = new Array<Indexable>(size)
 
@@ -20,6 +21,7 @@ function makePlotData(item: any): Array<Indexable> {
             name: `${Math.floor(i / 52) + 1}-${Math.floor(i % 52) + 1}`,
             'Продажи': data[i],
             'Сглаж.': (filtered[i] > 0 ? Math.ceil(filtered[i]) : 0),
+            'Восст.': (restored[i] > 0 ? restored[i] : null),
         } as Indexable;
 
         if (i >= size - 52) {
@@ -45,13 +47,12 @@ export interface ViewItemInfoState {
     sumError: number,
     isNextItem: boolean,
     prevItem: any,
+    data: Indexable[]
 }
 
 export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInfoState> {
     startIndex: number
     endIndex: number
-    data: Indexable[]
-
     private onChangeItem(e: React.SyntheticEvent) {
         this.setState((state) => {
             return { isNextItem: true }
@@ -67,22 +68,22 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
         instance.endIndex = args[0].endIndex
     }
 
-    private calcSum(begin: number, end: number): number {
+    private calcSum(data: Indexable[], begin: number, end: number): number {
         let sum = 0
 
         for (let i = begin; i < end; ++i) {
-            sum += this.data[52 * 3 + i]['Прогноз'] as number
+            sum += data[52 * 3 + i]['Прогноз'] as number
         }
 
         return sum
     }
 
 
-    private calcSoldSum(begin: number, end: number): number {
+    private calcSoldSum(data: Indexable[], begin: number, end: number): number {
         let sum = 0
 
         for (let i = begin; i < end; ++i) {
-            sum += this.data[52 * 3 + i]['Продажи'] as number
+            sum += data[52 * 3 + i]['Продажи'] as number
         }
 
         return sum
@@ -93,8 +94,8 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
             let b = parseInt(state.input.calcBegin as string)
             let e = parseInt(state.input.calcEnd as string)
 
-            let sum = instance.calcSum(b, e)
-            let sumSold = instance.calcSoldSum(b, e)
+            let sum = instance.calcSum(state.data, b, e)
+            let sumSold = instance.calcSoldSum(state.data, b, e)
             let sumError: number
 
             if (sumSold != 0) {
@@ -107,7 +108,8 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
                 input: state.input,
                 sum: sum,
                 sumSold: sumSold,
-                sumError: sumError
+                sumError: sumError,
+                data: state.data
             }
 
             newState.input[data.name] = data.value
@@ -119,19 +121,19 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
     constructor(props: any) {
         super(props)
 
-        this.onBrushChange.bind(this)
-        this.onCalcInput.bind(this)
-        this.onChangeItem.bind(this)
+        // this.onBrushChange.bind(this)
+        // this.onCalcInput.bind(this)
+        // this.onChangeItem.bind(this)
 
         this.startIndex = 0
         this.endIndex = 52 * 4 - 1
 
-        let item = this.props.item
-        this.data = makePlotData(item)
+        let item = props.item
 
+        let data = makePlotData(item)
 
-        let sum = this.calcSum(1, 52)
-        let sumSold = this.calcSoldSum(1, 52)
+        let sum = this.calcSum(data, 1, 52)
+        let sumSold = this.calcSoldSum(data, 1, 52)
         let sumError = 100 * (sum - sumSold) / sumSold
 
         this.state = {
@@ -139,21 +141,20 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
             sum: sum,
             sumSold: sumSold,
             sumError: sumError,
-            prevItem: this.props.item,
+            prevItem: item,
+            data: data
         } as ViewItemInfoState
 
         instance = this
     }
 
-    componentWillReceiveProps() {
-        console.log("ReceiveProps!")
+    componentDidUpdate() {
         if (this.props.item != this.state.prevItem) {
-            let item = this.props.item
-            this.data = makePlotData(item)
-
             this.setState((state) => {
-                let sum = this.calcSum(1, 52)
-                let sumSold = this.calcSoldSum(1, 52)
+                let item = this.props.item
+                let data = makePlotData(item)
+                let sum = this.calcSum(data, 1, 52)
+                let sumSold = this.calcSoldSum(data, 1, 52)
                 let sumError = 100 * (sum - sumSold) / sumSold
 
                 return {
@@ -161,30 +162,28 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
                     sum: sum,
                     sumSold: sumSold,
                     sumError: sumError,
-                    isNextItem: this.props.item
+                    isNextItem: this.props.item,
+                    data: data,
+                    prevItem: item
                 } as ViewItemInfoState
             })
         }
     }
 
-    componentDidUpdate() {
-        console.log("UPDATE!")
-    }
-
     render() {
         let item = this.props.item
 
-        let width = 1024
-        let height = 600
+        let width = 1127
+        let height = 400
 
         return (
             <span>
-                <h1> {item.name} </h1>
-
                 <List horizontal={true}>
-                    <List.Item><Link className="ui blue button" to={`../item/${item.id}`}> Предыдущий </Link></List.Item>
-                    <List.Item><Link className="ui blue button" to={`../item/${item.id + 2}`}> Следующий </Link></List.Item>
+                    <List.Item><Link className="ui blue button" to={`../item/${item.id}`}> <Icon name='arrow left' size='large' /> </Link></List.Item>
+                    <List.Item><Link className="ui blue button" to={`../item/${item.id + 2}`}> <Icon name='arrow right' size='large' /> </Link></List.Item>
                 </List>
+
+                <h1> {item.name} </h1>
 
                 <br />
 
@@ -227,7 +226,7 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
                             <Statistic.Value>{Math.ceil(this.state.sumError)}%</Statistic.Value>
                         </Statistic>
 
-                        <Divider />
+                        <br />
 
                     </Grid.Column>
                 </Grid>
@@ -235,7 +234,7 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
                 <LineChart
                     width={width}
                     height={height}
-                    data={this.data}
+                    data={this.state.data}
                     margin={{
                         top: 5, right: 30, left: 20, bottom: 5,
                     }}
@@ -256,13 +255,11 @@ export class ViewItemInfo extends React.Component<ViewItemInfoProps, ViewItemInf
                     <Line type="monotone" dataKey="Продажи" stroke="#8884d8" activeDot={{ r: 8 }} />
                     <Line type="monotone" dataKey="Сглаж." stroke="#82ca9d" />
                     <Line type="monotone" dataKey="Прогноз" stroke="#ffc658" />
+                    <Line type="monotone" dataKey="Восст." stroke="#ff0000" />
 
-                    {/*  */}
                     <Brush startIndex={this.startIndex} endIndex={this.endIndex} onChange={this.onBrushChange} />
                 </LineChart>
 
-                {
-                }
             </span>
         )
     }

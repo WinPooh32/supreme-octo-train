@@ -7,13 +7,14 @@ import (
 	"mime"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func prepareForecast(data []float64) (forecast, upperLimit, filtered []float64) {
+func prepareForecast(data []float64, lacks []YearLacks) (forecast, upperLimit, filtered, restored []float64) {
 	smoothHistory := movingavg(data, 2)
 	upperLimit = confidenceUpperLimit(smoothHistory, 4)
 
@@ -21,7 +22,10 @@ func prepareForecast(data []float64) (forecast, upperLimit, filtered []float64) 
 	coefs := calcYearCoefficient(data, filtered)
 	multCoefficient(filtered, coefs)
 
-	forecast = buildForecast(approximateByRegression(upperLimit[0 : len(filtered)-weeksperyear]))
+	//Внутри восстанавливает filtered!
+	restored = restoreLacks(filtered, lacks)
+
+	forecast = buildForecast(approximateByRegression(filtered[0 : len(filtered)-weeksperyear]))
 
 	return
 }
@@ -54,8 +58,6 @@ func app(r *gin.Engine) {
 			return
 		}
 
-		log.Println("NOROUTE")
-
 		c.Header("Content-Type", "text/html; charset=utf-8")
 		c.String(200, html, "Прогноз закупок")
 	})
@@ -80,10 +82,29 @@ func api(r *gin.Engine) {
 				log.Println(err)
 			}
 
-			name := record[0]
-			row := reverse(toFloat64(record[1:]))
+			//Парсим провалы
+			lacks := make([]YearLacks, 0, 4)
 
-			forecast, upperLimit, filtered := prepareForecast(row)
+			const yearsField = 1
+
+			years, _ := strconv.Atoi(record[yearsField])
+			rawLacks := record[2 : 2+years]
+
+			for _, v := range rawLacks {
+				lack := parseLackRange(v)
+				lacks = append(lacks, lack)
+			}
+
+			// реверс т.к. годы не в том порядке в файле
+			// так же для данных продаж
+			lacks = reverseLacks(lacks)
+
+			//Считываем название и статистику продаж
+			dataBegin := 2 + years
+			name := record[0]
+			row := reverse(toFloat64(record[dataBegin:]))
+
+			forecast, upperLimit, filtered, restored := prepareForecast(row, lacks)
 
 			response = append(response, gin.H{
 				"id":         i,
@@ -92,6 +113,7 @@ func api(r *gin.Engine) {
 				"forecast":   forecast,
 				"upperLimit": upperLimit,
 				"filtered":   filtered,
+				"restored": restored,
 			})
 		}
 

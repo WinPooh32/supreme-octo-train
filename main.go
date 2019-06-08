@@ -11,8 +11,6 @@ import (
 )
 
 func main() {
-	serveui("./frontend/dist")
-
 	// lacks := [...]string{
 	// 	" +  К 22.05.18 -  П 31.05.18 +  К 11.07.18 -  П 03.09.18 +",
 	// 	" +  13.07.18 пер(Товар НЕДОСТАЧА В УПАКОВКАХ) -  П 19.07.18 +",
@@ -29,6 +27,8 @@ func main() {
 	// for _, v := range lacks {
 	// 	fmt.Printf("'%s': %v\n", v, parseLackRange(v))
 	// }
+
+	serveui("./frontend/dist")
 }
 
 // func render(history []float64, item string) {
@@ -195,10 +195,6 @@ func approximateByRegression(data []float64) []float64 {
 
 		r := linearRegressionArray(period)
 		out[i] = r.Y(0)
-
-		// for j := 0; j < weeks; j++{
-		// 	out[i + j] = r.Y(j)
-		// }
 	}
 
 	return out
@@ -222,7 +218,7 @@ func calcYearCoefficient(dataL, dataR []float64) []float64 {
 	out := make([]float64, len(sumL))
 
 	for i := 0; i < len(sumR); i++ {
-		if sumL[i] != 0 {
+		if sumL[i] != 0 && sumR[i] != 0 {
 			out[i] = sumL[i] / sumR[i]
 		} else {
 			out[i] = 0
@@ -297,6 +293,17 @@ func simWeeks(begin, weeks, items int, forecast []float64) (cargo []float64) {
 
 func genNoise(scale, trending float64) float64 {
 	return scale * (rand.Float64() - trending)
+}
+
+func reverseLacks(lacks []YearLacks) []YearLacks{
+	out := make([]YearLacks, len(lacks))
+	last := len(out) - 1
+
+	for i, v := range lacks {
+		out[last-i] = v
+	}
+
+	return out
 }
 
 func reverse(pts []float64) []float64 {

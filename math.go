@@ -49,7 +49,7 @@ func linearRegressionArray(history []float64) line {
 		sumXSquare, sumX, sumY, sumXY float64
 	)
 
-	for x := 0; x < len(history); x++  {
+	for x := 0; x < len(history); x++ {
 		sumXSquare += float64(x * x)
 		sumX += float64(x)
 		sumY += history[x]
@@ -89,7 +89,11 @@ func dispersion(data []float64, avg float64) (out []float64) {
 
 // Среднеквадратичное отклонение
 func stdDeviation(dispersion []float64) float64 {
-	return math.Sqrt(average(dispersion...))
+	avg := average(dispersion...)
+	if avg < 0 {
+		log.Fatalln("AVG is less then 0!")
+	}
+	return math.Sqrt(avg)
 }
 
 // Среднее
@@ -100,6 +104,10 @@ func average(nums ...float64) float64 {
 		sum += num
 	}
 
+	if sum == 0 {
+		return 0
+	}
+		
 	return sum / float64(len(nums))
 }
 
@@ -125,10 +133,10 @@ func movingavg(in []float64, window int) (out []float64) {
 
 		if sum > 0 {
 			out[i] = sum / float64(window)
-		}else{
+		} else {
 			out[i] = 0
 		}
-		
+
 	}
 
 	return
