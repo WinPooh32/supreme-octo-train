@@ -154,7 +154,7 @@ func restoreLacks(history []float64, lacks []YearLacks) []float64{
 					
 					restored[idx] = pt
 
-					if history[idx] > 0 {
+					if history[idx] > 0 && pt > history[idx] {
 						history[idx] =(history[idx] + pt) / 2
 					}else{
 						history[idx] = pt
