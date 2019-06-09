@@ -159,6 +159,7 @@ func serveui(dir string) {
 	api(r)
 
 	r.StaticFS(staticPath, gin.Dir(dir, true))
+	r.StaticFile("/favicon.ico", dir+"/favicon.ico")
 	// r.Static(staticPath, dir)
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
