@@ -15,10 +15,10 @@ import (
 )
 
 func prepareForecast(data []float64, lacks []YearLacks) (forecast, upperLimit, filtered, restored []float64) {
-	smoothHistory := movingavg(data, 2)
+	smoothHistory := approximateByRegression(movingavg(data, 2))
 	upperLimit = confidenceUpperLimit(smoothHistory, 4)
 
-	filtered = approximateByRegression(upperLimit)
+	filtered = approximateByRegression(smoothHistory)
 	coefs := calcYearCoefficient(data, filtered)
 	multCoefficient(filtered, coefs)
 
@@ -113,7 +113,7 @@ func api(r *gin.Engine) {
 				"forecast":   forecast,
 				"upperLimit": upperLimit,
 				"filtered":   filtered,
-				"restored": restored,
+				"restored":   restored,
 			})
 		}
 

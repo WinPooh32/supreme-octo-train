@@ -295,7 +295,7 @@ func genNoise(scale, trending float64) float64 {
 	return scale * (rand.Float64() - trending)
 }
 
-func reverseLacks(lacks []YearLacks) []YearLacks{
+func reverseLacks(lacks []YearLacks) []YearLacks {
 	out := make([]YearLacks, len(lacks))
 	last := len(out) - 1
 
@@ -306,13 +306,25 @@ func reverseLacks(lacks []YearLacks) []YearLacks{
 	return out
 }
 
+//Реверс только по годам!
 func reverse(pts []float64) []float64 {
 	out := make([]float64, len(pts))
-	last := len(out) - 1
+	// last := len(out) - 1
 
-	for i, v := range pts {
-		out[last-i] = v
+	years := len(pts) / weeksperyear
+
+	for i := 0; i < years; i++ {
+		idx := i * weeksperyear
+
+		b := len(pts) - (i+1)*weeksperyear
+		e := b + weeksperyear
+
+		copy(out[idx:idx+weeksperyear], pts[b:e])
 	}
+
+	// for i, v := range pts {
+	// 	out[last-i] = v
+	// }
 
 	return out
 }
