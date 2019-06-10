@@ -16,6 +16,7 @@ func parseLackRange(s string) YearLacks {
 	ranges := make(YearLacks, 0, 5)
 
 	lackInBegin := regexp.MustCompile(`(?s)^\s*\-`)
+	lackInEnd := regexp.MustCompile(`(?s).*\-\s*$`)
 	dateReg := regexp.MustCompile(`(?s)(\d{2}).(\d{2}).(\d{2})`)
 	rangesReg := regexp.MustCompile(`(?s)(\+[^\+]*)|(^\s*\-[^+]*)`)
 
@@ -35,7 +36,7 @@ func parseLackRange(s string) YearLacks {
 		isLast := (i == len(rawRanges)-1)
 
 		if size == 1 {
-			if lackInBegin.FindStringIndex(s) != nil {
+			if lackInBegin.FindStringIndex(s) != nil && lackInEnd.FindStringIndex(match) == nil {
 				// нет товара в начале года
 				rng[0] = 0
 				rng[1] = mapWeek(dates[0], DateLayoutShort)
@@ -72,52 +73,52 @@ func fillYearByRanges(lacks YearLacks, out []byte) {
 }
 
 func fillManyYearsByLackRanges(yearslacks []YearLacks) []byte {
-	out := make([]byte, len(yearslacks) * weeksperyear)
-	for i := range yearslacks{
-		fillYearByRanges(yearslacks[i], out[i*weeksperyear: (i+1)*weeksperyear])
+	out := make([]byte, len(yearslacks)*weeksperyear)
+	for i := range yearslacks {
+		fillYearByRanges(yearslacks[i], out[i*weeksperyear:(i+1)*weeksperyear])
 	}
 	return out
 }
 
-func intersectedLacks(left, right YearLacks) YearLacks {
-	ranges := make(YearLacks, 0, 10)
+// func intersectedLacks(left, right YearLacks) YearLacks {
+// 	ranges := make(YearLacks, 0, 10)
 
-	//Тут бы битовые поля использовать вмнесто массивов
-	yearL := yearSet{}
-	yearR := yearSet{}
-	intersect := yearSet{}
+// 	//Тут бы битовые поля использовать вмнесто массивов
+// 	yearL := yearSet{}
+// 	yearR := yearSet{}
+// 	intersect := yearSet{}
 
-	fillYearByRanges(left, yearL[:])
-	fillYearByRanges(right, yearR[:])
+// 	fillYearByRanges(left, yearL[:])
+// 	fillYearByRanges(right, yearR[:])
 
-	//Строим массив пересечений
-	for i := range intersect {
-		intersect[i] = yearL[i] * yearR[i]
-	}
+// 	//Строим массив пересечений
+// 	for i := range intersect {
+// 		intersect[i] = yearL[i] * yearR[i]
+// 	}
 
-	//Создаем промежутки пересечений
-	var inRange bool
-	var begin, end int
+// 	//Создаем промежутки пересечений
+// 	var inRange bool
+// 	var begin, end int
 
-	last := len(intersect) - 1
+// 	last := len(intersect) - 1
 
-	for i, v := range intersect {
-		if v == 1 && inRange == false {
-			inRange = true
-			begin = i
-		} else if (v == 0 || i == last) && inRange == true {
-			inRange = false
-			end = i - 1
+// 	for i, v := range intersect {
+// 		if v == 1 && inRange == false {
+// 			inRange = true
+// 			begin = i
+// 		} else if (v == 0 || i == last) && inRange == true {
+// 			inRange = false
+// 			end = i - 1
 
-			lack := LackRange{begin, end}
-			ranges = append(ranges, lack)
-		}
-	}
+// 			lack := LackRange{begin, end}
+// 			ranges = append(ranges, lack)
+// 		}
+// 	}
 
-	return ranges
-}
+// 	return ranges
+// }
 
-func restoreLacks(history []float64, lacks []YearLacks) []float64{
+func restoreLacks(history []float64, lacks []YearLacks) []float64 {
 	if len(lacks) > len(history)/weeksperyear {
 		panic("кол-во лет в провалах больше, чем всего лет")
 	}
@@ -127,9 +128,9 @@ func restoreLacks(history []float64, lacks []YearLacks) []float64{
 	restored := make([]float64, len(history))
 	lacksMapped := fillManyYearsByLackRanges(lacks)
 
-	for i := 0; i < weeksperyear; i++{
-		
-		lack := make([]byte, years) 
+	for i := 0; i < weeksperyear; i++ {
+
+		lack := make([]byte, years)
 		pts := make([]float64, 0, years)
 
 		for j := 0; j < years; j++ {
@@ -145,18 +146,18 @@ func restoreLacks(history []float64, lacks []YearLacks) []float64{
 
 		// восстанавливаем провалы
 		l := linearRegressionArray(pts)
-		for j,v := range lack{
-			if v == 1{
+		for j, v := range lack {
+			if v == 1 {
 				pt := l.Y(j)
 				if pt > 0 {
 					// индекс = год + неделя
 					idx := (j * weeksperyear) + i
-					
+
 					restored[idx] = pt
 
 					if history[idx] > 0 && pt > history[idx] {
-						history[idx] =(history[idx] + pt) / 2
-					}else{
+						history[idx] = (history[idx] + pt) / 2
+					} else {
 						history[idx] = pt
 					}
 				}
