@@ -80,44 +80,6 @@ func fillManyYearsByLackRanges(yearslacks []YearLacks) []byte {
 	return out
 }
 
-// func intersectedLacks(left, right YearLacks) YearLacks {
-// 	ranges := make(YearLacks, 0, 10)
-
-// 	//Тут бы битовые поля использовать вмнесто массивов
-// 	yearL := yearSet{}
-// 	yearR := yearSet{}
-// 	intersect := yearSet{}
-
-// 	fillYearByRanges(left, yearL[:])
-// 	fillYearByRanges(right, yearR[:])
-
-// 	//Строим массив пересечений
-// 	for i := range intersect {
-// 		intersect[i] = yearL[i] * yearR[i]
-// 	}
-
-// 	//Создаем промежутки пересечений
-// 	var inRange bool
-// 	var begin, end int
-
-// 	last := len(intersect) - 1
-
-// 	for i, v := range intersect {
-// 		if v == 1 && inRange == false {
-// 			inRange = true
-// 			begin = i
-// 		} else if (v == 0 || i == last) && inRange == true {
-// 			inRange = false
-// 			end = i - 1
-
-// 			lack := LackRange{begin, end}
-// 			ranges = append(ranges, lack)
-// 		}
-// 	}
-
-// 	return ranges
-// }
-
 func restoreLacks(history []float64, lacks []YearLacks) []float64 {
 	if len(lacks) > len(history)/weeksperyear {
 		panic("кол-во лет в провалах больше, чем всего лет")

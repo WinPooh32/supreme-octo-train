@@ -142,39 +142,6 @@ func movingavg(in []float64, window int) (out []float64) {
 	return
 }
 
-// func movingavg(in []float64, window int) (out []float64) {
-// 	if len(in) == 0 {
-// 		log.Fatalln("movingavg(in []float64, window int): пустой массив in!")
-// 	}
-
-// 	if window%2 == 0 || window < 3 {
-// 		log.Fatalln("movingavg(in []float64, window int): значение window должно быть нечетным числом ")
-// 	}
-
-// 	size := len(in)
-// 	out = make([]float64, size)
-
-// 	half := window / 2
-// 	end := size - half
-
-// 	for i := 0; i < end; i++ {
-// 		if i < half {
-// 			out[i] = in[i]
-// 			continue
-// 		}
-
-// 		sum := 0.0
-
-// 		for j := i - half; j < i+half; j++ {
-// 			sum += in[j]
-// 		}
-
-// 		out[i] = sum / float64(window)
-// 	}
-
-// 	return
-// }
-
 // Верхняя доверительная граница
 func confidenceUpperLimit(in []float64, window int) (out []float64) {
 	out = make([]float64, len(in))
