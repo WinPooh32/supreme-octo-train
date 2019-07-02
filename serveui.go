@@ -63,61 +63,64 @@ func app(r *gin.Engine) {
 	})
 }
 
+func readItems(reader *csv.Reader) []gin.H {
+	response := make([]gin.H, 0, 10)
+
+	for i := 0; ; i++ {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println(err)
+		}
+
+		//Парсим провалы
+		lacks := make([]YearLacks, 0, 4)
+
+		const yearsField = 1
+
+		years, _ := strconv.Atoi(record[yearsField])
+		rawLacks := record[2 : 2+years]
+
+		for _, v := range rawLacks {
+			lack := parseLackRange(v)
+			lacks = append(lacks, lack)
+		}
+
+		// реверс т.к. годы не в том порядке в файле
+		// так же для данных продаж
+		lacks = reverseLacks(lacks)
+
+		//Считываем название и статистику продаж
+		dataBegin := 2 + years
+		name := record[0]
+		row := reverse(toFloat64(record[dataBegin:]))
+
+		forecast, upperLimit, filtered, restored := prepareForecast(row, lacks)
+
+		response = append(response, gin.H{
+			"id":         i,
+			"name":       name,
+			"data":       row,
+			"forecast":   forecast,
+			"upperLimit": upperLimit,
+			"filtered":   filtered,
+			"restored":   restored,
+		})
+	}
+	return response
+}
+
 func api(r *gin.Engine) {
 	r.GET("/forecast", func(c *gin.Context) {
-
-		response := make([]gin.H, 0, 10)
 
 		//Считываем товары
 		fileIn, _ := os.Open("продажи.csv")
 		defer fileIn.Close()
 		reader := csv.NewReader(fileIn)
-
-		for i := 0; ; i++ {
-			record, err := reader.Read()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Println(err)
-			}
-
-			//Парсим провалы
-			lacks := make([]YearLacks, 0, 4)
-
-			const yearsField = 1
-
-			years, _ := strconv.Atoi(record[yearsField])
-			rawLacks := record[2 : 2+years]
-
-			for _, v := range rawLacks {
-				lack := parseLackRange(v)
-				lacks = append(lacks, lack)
-			}
-
-			// реверс т.к. годы не в том порядке в файле
-			// так же для данных продаж
-			lacks = reverseLacks(lacks)
-
-			//Считываем название и статистику продаж
-			dataBegin := 2 + years
-			name := record[0]
-			row := reverse(toFloat64(record[dataBegin:]))
-
-			forecast, upperLimit, filtered, restored := prepareForecast(row, lacks)
-
-			response = append(response, gin.H{
-				"id":         i,
-				"name":       name,
-				"data":       row,
-				"forecast":   forecast,
-				"upperLimit": upperLimit,
-				"filtered":   filtered,
-				"restored":   restored,
-			})
-		}
-
-		c.JSON(200, response)
+		items := readItems(reader)
+		c.JSON(200, items)
 	})
 }
 
